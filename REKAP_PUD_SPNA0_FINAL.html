@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REKAP PUD SPNA0</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{font-family:Arial;margin:8px}
+table{border-collapse:collapse;width:100%;font-size:11px}
+th,td{border:1px solid #999;padding:3px;text-align:center}
+thead tr:nth-child(1),thead tr:nth-child(2){background:orange}
+.tanggal-head{background:silver}
+.tanggal{background:#90EE90;font-weight:bold}
+.minggu td{background:#ffc7c7!important}
+.totalbulan{background:#d9ead3;font-weight:bold}
+input{width:45px;padding:2px;text-align:center}
+canvas{max-width:500px;max-height:500px}
+</style>
+</head>
+<body>
+
+<h2>REKAP PUD SPNA0</h2>
+
+<label>Bulan: <input type="month" id="bulan"></label>
+<button onclick="buatTabel()">Tampilkan</button>
+
+<table>
+<thead>
+<tr>
+<th rowspan="2" class="tanggal-head">Tanggal</th>
+<th colspan="2">Erik</th>
+<th colspan="2">Itang</th>
+<th colspan="2">Edi</th>
+<th colspan="2">Indra</th>
+<th rowspan="2">Fikri</th>
+<th rowspan="2">Reza</th>
+<th rowspan="2">Total</th>
+</tr>
+<tr>
+<th>Mitra</th><th>TF</th>
+<th>Mitra</th><th>TF</th>
+<th>Mitra</th><th>TF</th>
+<th>CTA</th><th>MMK</th>
+</tr>
+</thead>
+<tbody id="tb"></tbody>
+</table>
+
+<h3>Grafik Lingkaran Bulanan</h3>
+<canvas id="chart"></canvas>
+
+<script>
+function keyData(){return "SPNA0_"+bulan.value}
+function load(){return JSON.parse(localStorage.getItem(keyData())||"{}")}
+
+function save(){
+ let o={};
+ document.querySelectorAll("input.num").forEach(i=>{
+   o[i.dataset.id]=i.value;
+ });
+ localStorage.setItem(keyData(),JSON.stringify(o));
+ hitung();
+}
+
+function cell(id,val){
+ return '<td><input class="num" type="number" min="0" data-id="'+id+'" value="'+(val||'')+'" onchange="save()"></td>';
+}
+
+function buatTabel(){
+ let v=bulan.value;
+ if(!v)return;
+ let [y,m]=v.split("-").map(Number);
+ let hari=new Date(y,m,0).getDate();
+ let data=load();
+
+ tb.innerHTML='';
+
+ for(let d=1;d<=hari;d++){
+   let tr=document.createElement("tr");
+   tr.className="data";
+
+   if(new Date(y,m-1,d).getDay()==0) tr.classList.add("minggu");
+
+   tr.innerHTML=
+   '<td class="tanggal">'+d+'</td>'+
+   cell('em'+d,data['em'+d])+
+   cell('et'+d,data['et'+d])+
+   cell('im'+d,data['im'+d])+
+   cell('it'+d,data['it'+d])+
+   cell('dm'+d,data['dm'+d])+
+   cell('dt'+d,data['dt'+d])+
+   cell('cta'+d,data['cta'+d])+
+   cell('mmk'+d,data['mmk'+d])+
+   cell('fikri'+d,data['fikri'+d])+
+   cell('reza'+d,data['reza'+d])+
+   '<td class="total">0</td>';
+
+   tb.appendChild(tr);
+ }
+
+ let t=document.createElement("tr");
+ t.className="totalbulan";
+ t.innerHTML='<td colspan="11">TOTAL BULAN</td><td id="grand">0</td>';
+ tb.appendChild(t);
+
+ hitung();
+}
+
+let pie;
+
+function hitung(){
+ let totalBulan=0;
+
+ let grup={Erik:0,Itang:0,Edi:0,Indra:0,Fikri:0,Reza:0};
+
+ document.querySelectorAll("tr.data").forEach(r=>{
+   let total=0;
+
+   let val=(id)=>Number(r.querySelector('[data-id="'+id+'"]')?.value||0);
+
+   let em=val('em'+r.cells[0].innerText);
+   let et=val('et'+r.cells[0].innerText);
+   let im=val('im'+r.cells[0].innerText);
+   let it=val('it'+r.cells[0].innerText);
+   let dm=val('dm'+r.cells[0].innerText);
+   let dt=val('dt'+r.cells[0].innerText);
+   let cta=val('cta'+r.cells[0].innerText);
+   let mmk=val('mmk'+r.cells[0].innerText);
+   let fikri=val('fikri'+r.cells[0].innerText);
+   let reza=val('reza'+r.cells[0].innerText);
+
+   // CTA TIDAK MASUK TOTAL OTOMATIS
+   total = em+et+im+it+dm+dt+mmk+fikri+reza;
+
+   r.querySelector('.total').innerText=total;
+   totalBulan += total;
+
+   grup.Erik += em+et;
+   grup.Itang += im+it;
+   grup.Edi += dm+dt;
+   grup.Indra += mmk; // CTA tidak dihitung
+   grup.Fikri += fikri;
+   grup.Reza += reza;
+ });
+
+ grand.innerText=totalBulan;
+
+ let ctx=document.getElementById('chart');
+
+ if(pie) pie.destroy();
+
+ pie=new Chart(ctx,{
+  type:'pie',
+  data:{
+   labels:Object.keys(grup),
+   datasets:[{data:Object.values(grup)}]
+  }
+ });
+}
+
+bulan.value=new Date().toISOString().slice(0,7);
+buatTabel();
+
+/*
+MULTI USER:
+Untuk benar-benar multi-user real-time,
+hubungkan penyimpanan ke Firebase Firestore.
+*/
+</script>
+</body>
+</html>
